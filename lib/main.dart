@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
+import 'screens/chatbot_screen.dart';
 import 'screens/scam_exposure_screen.dart';    // 新增：引入騙局曝光頁面
 import 'screens/profile_screen.dart';          // 新增：引入我的頁面
-
 
 void main() {
   runApp(const Chat165());
@@ -48,6 +48,7 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _pages = [
     HomeScreen(),
+    ChatScreen(),
     ScamExposureScreen(),
     ProfileScreen(),
   ];
@@ -65,6 +66,10 @@ class _MainScreenState extends State<MainScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: '首頁',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.chat),
+            label: '聊天',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.warning),
