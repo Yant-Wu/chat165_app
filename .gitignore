@@ -12,11 +12,17 @@
 .swiftpm/
 migrate_working_dir/
 
+/ios/Pods/
+/ios/.symlinks/
+/ios/Flutter/Flutter.framework
+/ios/Flutter/Flutter.podspec
+/ios/Flutter/*.xcconfig
 # IntelliJ related
 *.iml
 *.ipr
 *.iws
 .idea/
+*.xcconfig
 
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
@@ -43,3 +49,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+ios/Podfile
+ios/Flutter/Debug.xcconfig
+ios/Flutter/Release.xcconfig
+macos/Podfile
+macos/Flutter/Flutter-Debug.xcconfig
+macos/Flutter/Flutter-Release.xcconfig
