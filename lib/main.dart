@@ -1,11 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/chatbot_screen.dart';
-import 'screens/scam_exposure_screen.dart';    // 新增：引入騙局曝光頁面
-import 'screens/profile_screen.dart';          // 新增：引入我的頁面
+import 'screens/scam_exposure_screen.dart';
+import 'screens/profile_screen.dart';
+import 'service/speech_service.dart';
 
 void main() {
-  runApp(const Chat165());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => SpeechService()),
+      ],
+      child: const Chat165(),
+    ),
+  );
 }
 
 class Chat165 extends StatelessWidget {
@@ -45,7 +54,6 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
-
   final List<Widget> _pages = [
     HomeScreen(),
     ChatScreen(),
@@ -79,13 +87,8 @@ class _MainScreenState extends State<MainScreen> {
             icon: Icon(Icons.person),
             label: '我的',
           ),
-          
         ],
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
+        onTap: (index) => setState(() => _currentIndex = index),
       ),
     );
   }
