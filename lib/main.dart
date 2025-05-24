@@ -27,17 +27,25 @@ class Chat165 extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blue,
-        scaffoldBackgroundColor: const Color(0xFFF5F5F5),
-        appBarTheme: const AppBarTheme(
-          elevation: 0,
-          centerTitle: true,
-          backgroundColor: Color(0xFF1976D2),
-          titleTextStyle: TextStyle(
-            fontSize: 20,
+        scaffoldBackgroundColor: Colors.grey[100], // MODIFY: Consistent light grey background
+        appBarTheme: AppBarTheme( // MODIFY: Updated AppBar theme to match Apple style
+          elevation: 0.5,
+          centerTitle: false,
+          backgroundColor: Colors.grey[50], // Light background for AppBar
+          titleTextStyle: const TextStyle(
+            fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: Colors.black, // Black title text
           ),
-          iconTheme: IconThemeData(color: Colors.white),
+          iconTheme: IconThemeData(color: Colors.blue.shade700), // Blue icons for AppBar
+        ),
+        // ADD: Define BottomNavigationBarTheme for consistency
+        bottomNavigationBarTheme: BottomNavigationBarThemeData(
+          backgroundColor: Colors.grey[50], // Light background for BottomNav
+          selectedItemColor: Colors.blue.shade700, // Blue for selected item
+          unselectedItemColor: Colors.grey.shade600, // Grey for unselected items
+          type: BottomNavigationBarType.fixed,
+          elevation: 0.5,
         ),
       ),
       home: const MainScreen(),
@@ -55,36 +63,43 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   final List<Widget> _pages = [
-    HomeScreen(),
-    ChatScreen(),
-    ScamExposureScreen(),
-    ProfileScreen(),
+    const HomeScreen(),
+    const ChatScreen(),
+    const ScamExposureScreen(),
+    const ProfileScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_currentIndex],
+      body: IndexedStack( // Use IndexedStack to preserve state of pages
+        index: _currentIndex,
+        children: _pages,
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFF1976D2),
-        unselectedItemColor: Colors.grey,
+        // Properties like type, selectedItemColor, unselectedItemColor, backgroundColor
+        // will now be primarily controlled by the BottomNavigationBarThemeData in ThemeData
+        // However, you can still override them here if needed for this specific instance.
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home),
+            icon: Icon(Icons.home_outlined), // Use outlined icons for a lighter feel
+            activeIcon: Icon(Icons.home), // Optional: different icon when active
             label: '首頁',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.chat),
+            icon: Icon(Icons.chat_bubble_outline_rounded), // Use outlined icons
+            activeIcon: Icon(Icons.chat_bubble_rounded),
             label: '聊天',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.warning),
+            icon: Icon(Icons.shield_outlined), // Changed to a more relevant "security/exposure" icon
+            activeIcon: Icon(Icons.shield),
             label: '騙局曝光',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
+            icon: Icon(Icons.person_outline), // Use outlined icons
+            activeIcon: Icon(Icons.person),
             label: '我的',
           ),
         ],

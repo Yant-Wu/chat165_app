@@ -1,6 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'dart:async'; // For Timer
+import 'dart:math'; // For Random
+
+// ADD: DashboardItem class definition
+class DashboardItem {
+  final int rank;
+  final String name;
+  final int numericValue;
+  String get displayValue => '$numericValue 分';
+
+  DashboardItem({required this.rank, required this.name, required this.numericValue});
+}
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -10,231 +20,169 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final stt.SpeechToText _speech = stt.SpeechToText();
-  bool _isListening = false;
-  bool _voiceEnabled = false; // 主開關狀態
-  String _lastResult = '';
-  DateTime? _lastBackTap;
+  // State variables for dashboard
+  List<DashboardItem> _dashboardItems = [];
+  bool _isLoadingDashboard = true;
+  Timer? _dashboardUpdateTimer;
 
   @override
   void initState() {
     super.initState();
-    _initSpeech();
-  }
-
-  Future<void> _initSpeech() async {
-    await _speech.initialize();
-  }
-
-  void _toggleVoiceEnabled(bool value) {
-    setState(() {
-      _voiceEnabled = value;
-      if (!value) {
-        _stopListening(); // 關閉主開關時停止語音辨識
-      }
+    // REMOVE: _initSpeech(); // This was for the removed voice risk detection
+    // ADD: Initialize and start timer for dashboard data
+    _fetchDashboardData(); // Initial fetch
+    _dashboardUpdateTimer = Timer.periodic(Duration(minutes: 10), (timer) {
+      _fetchDashboardData();
     });
   }
 
-  void _handleBackTap() {
-    if (!_voiceEnabled) return; // 只有主開關開啟時響應
-
-    final now = DateTime.now();
-    if (_lastBackTap != null && now.difference(_lastBackTap!) < Duration(milliseconds: 500)) {
-      _toggleListening(); // 雙擊背面切換語音狀態
-      _lastBackTap = null;
-    } else {
-      _lastBackTap = now;
-    }
-  }
-
-  void _toggleListening() {
+  // Method to fetch/simulate dashboard data
+  Future<void> _fetchDashboardData() async {
+    if (!mounted) return;
     setState(() {
-      _isListening = !_isListening;
-      if (_isListening) {
-        _startListening();
-      } else {
-        _stopListening();
-      }
+      _isLoadingDashboard = true;
     });
-  }
 
-  Future<void> _startListening() async {
-    final status = await Permission.microphone.request();
-    if (!status.isGranted) return;
+    // Simulate network delay
+    await Future.delayed(Duration(milliseconds: 300 + Random().nextInt(400)));
 
-    if (!_isListening) {
-      setState(() => _isListening = true);
-      _speech.listen(
-        onResult: (result) {
-          if (result.finalResult) {
-            setState(() => _lastResult = result.recognizedWords);
-          }
-        },
-        listenFor: Duration(seconds: 30),
+    final random = Random();
+    List<DashboardItem> newItems = List.generate(5, (index) {
+      return DashboardItem(
+        rank: 0, // Will be set after sorting
+        name: '詐騙手法 ${String.fromCharCode(65 + random.nextInt(10))}${index + 1}',
+        numericValue: random.nextInt(2000) + 500,
       );
-    }
-  }
+    });
 
-  Future<void> _stopListening() async {
-    if (_isListening) {
-      await _speech.stop();
-      setState(() => _isListening = false);
-    }
+    newItems.sort((a, b) => b.numericValue.compareTo(a.numericValue));
+
+    _dashboardItems = List.generate(newItems.length, (index) {
+      return DashboardItem(
+        rank: index + 1,
+        name: newItems[index].name,
+        numericValue: newItems[index].numericValue,
+      );
+    });
+    
+    if (!mounted) return;
+    setState(() {
+      _isLoadingDashboard = false;
+    });
   }
 
   @override
   void dispose() {
-    _speech.stop();
+    _dashboardUpdateTimer?.cancel(); // Cancel the timer
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[100], // MODIFY: Scaffold background color
       appBar: AppBar(
         title: const Text('國家反詐中心'),
-        centerTitle: true,
-        backgroundColor: const Color(0xFF1976D2),
-        elevation: 0,
+        centerTitle: false, // MODIFY: Align title to the left
+        backgroundColor: Colors.grey[50], // MODIFY: AppBar background color
+        elevation: 0.5, // MODIFY: Subtle elevation
+        titleTextStyle: const TextStyle( // ADD: iOS-like title style
+          color: Colors.black,
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+        ),
+        iconTheme: const IconThemeData(color: Colors.blue), // ADD: Icon theme for AppBar icons
       ),
       body: SingleChildScrollView(
         child: SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // 功能按鈕區 (保持不變)
+              // 功能按鈕區
               Container(
-                color: const Color(0xFF1976D2),
-                padding: const EdgeInsets.only(bottom: 20),
+                color: Colors.white, // MODIFY: Background color for function button area
+                padding: const EdgeInsets.symmetric(vertical: 20), // MODIFY: Padding for the area
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     _buildFunctionButton('我要舉報', Icons.report, Colors.red),
-                    _buildFunctionButton('來電預警', Icons.phone, Colors.orange),
-                    _buildFunctionButton('身份核實', Icons.verified_user, Colors.green),
+                    _buildFunctionButton('來電預警', Icons.phone_in_talk, Colors.orange), // Changed icon for variety
+                    _buildFunctionButton('身份核實', Icons.verified_user, Colors.green), // Reverted icon
                   ],
                 ),
               ),
               
-              // 風險自查區 (修改部分)
+              // 165dashboard區
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0), // MODIFY: Added vertical padding
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      '風險自查',
-                      style: TextStyle(
-                        fontSize: 18,
+                      '165dashboard',
+                      style: TextStyle( // MODIFY: iOS-like section title
+                        fontSize: 22,
                         fontWeight: FontWeight.bold,
+                        color: Colors.black87,
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Card(
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Column(
-                        children: [
-                          // 新增語音辨識開關
-                          ListTile(
-                            leading: const Icon(Icons.mic, color: Colors.blue),
-                            title: const Text('語音風險檢測'),
-                            subtitle: const Text('敲擊背面兩下啟動語音辨識'),
-                            trailing: Switch(
-                              value: _voiceEnabled,
-                              onChanged: _toggleVoiceEnabled,
-                            ),
-                            onTap: () => _toggleVoiceEnabled(!_voiceEnabled),
-                          ),
-                          const Divider(height: 1),
-                          ListTile(
-                            leading: const Icon(Icons.android, color: Colors.blue),
-                            title: const Text('APP自檢'),
-                            subtitle: const Text('手機自測可疑APP'),
-                            onTap: () {},
-                          ),
-                          const Divider(height: 1),
-                          ListTile(
-                            leading: const Icon(Icons.search, color: Colors.blue),
-                            title: const Text('風險查詢'),
-                            subtitle: const Text('支付社交賬號核驗'),
-                            onTap: () {},
-                          ),
-                        ],
-                      ),
-                    ),
-                    // 新增語音狀態顯示
-                    if (_voiceEnabled) ...[
-                      const SizedBox(height: 12),
-                      Card(
-                        color: _isListening ? Colors.blue[50] : null,
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.mic,
-                                    color: _isListening ? Colors.green : Colors.grey,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    _isListening ? '正在聆聽中...' : '待機中 (敲擊背面兩下開始)',
-                                    style: TextStyle(
-                                      color: _isListening ? Colors.green : Colors.grey,
-                                    ),
-                                  ),
-                                ],
+                    // MODIFY: Dashboard UI using ListView.separated
+                    if (_isLoadingDashboard)
+                      const Center(child: Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: CircularProgressIndicator(),
+                      ))
+                    else if (_dashboardItems.isEmpty)
+                      const Center(child: Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Text('目前沒有排行榜資料'),
+                      ))
+                    else
+                      ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _dashboardItems.length,
+                        itemBuilder: (context, index) {
+                          final item = _dashboardItems[index];
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: Colors.grey[200], // MODIFY: Subtle background for rank
+                              child: Text(
+                                '#${item.rank}',
+                                style: TextStyle(
+                                  color: Colors.grey[700], // MODIFY: Muted text color for rank
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
                               ),
-                              if (_lastResult.isNotEmpty) ...[
-                                const SizedBox(height: 8),
-                                Text('上次結果: $_lastResult'),
-                              ],
-                            ],
-                          ),
+                            ),
+                            title: Text(
+                              item.name,
+                              style: const TextStyle( // MODIFY: iOS-like title style
+                                fontWeight: FontWeight.w500,
+                                fontSize: 17,
+                                color: Colors.black87
+                              )
+                            ),
+                            trailing: Text(
+                              item.displayValue,
+                              style: TextStyle( // MODIFY: iOS-like detail text style
+                                color: Colors.grey[600],
+                                fontSize: 16
+                              ),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(vertical: 10.0), // MODIFY: Adjust vertical padding
+                          );
+                        },
+                        separatorBuilder: (context, index) => Divider( // ADD: Separator for list items
+                          height: 1,
+                          thickness: 0.5, // Thinner divider
+                          color: Colors.grey[300], // Lighter separator color
+                          indent: 16, // Align with ListTile content (approx)
+                          endIndent: 0,
                         ),
                       ),
-                    ],
-                  ],
-                ),
-              ),
-              
-              // 最新案例區 (保持不變)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      '最新案例',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildNewsCard(
-                      '為逃生竟肯跳樓？被抓後險遭活埋！男子親送緬北恐怖遺...',
-                      '國家反詐中心',
-                      '2021-08-03',
-                    ),
-                    const SizedBox(height: 12),
-                    _buildNewsCard(
-                      '八旬老太執意轉賬40萬元 民警、銀行聯手上演現場"反詐"...',
-                      '國家反詐中心',
-                      '2021-08-03',
-                    ),
-                    const SizedBox(height: 12),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () {},
-                        child: const Text('查看更多案例 >'),
-                      ),
-                    ),
                     const SizedBox(height: 20),
                   ],
                 ),
@@ -246,79 +194,30 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // 保持原有的 _buildFunctionButton 和 _buildNewsCard 方法不變
-  Widget _buildFunctionButton(String text, IconData icon, Color color) {
+  // MODIFY: _buildFunctionButton for Apple-like style
+  Widget _buildFunctionButton(String text, IconData icon, Color iconColor) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 60,
-          height: 60,
+          width: 56,
+          height: 56,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(30),
+            color: iconColor.withOpacity(0.15), // Subtle background using icon color
+            borderRadius: BorderRadius.circular(16), // Rounded rectangle
           ),
-          child: Icon(icon, size: 30, color: color),
+          child: Icon(icon, size: 28, color: iconColor),
         ),
         const SizedBox(height: 8),
         Text(
           text,
           style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
+            color: Colors.black87, // Darker text for light background
+            fontWeight: FontWeight.w500, // Medium weight
+            fontSize: 13,
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildNewsCard(String title, String source, String date) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: () {},
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    source,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  Text(
-                    date,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

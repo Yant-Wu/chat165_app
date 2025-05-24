@@ -118,14 +118,21 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[100], // MODIFY: Consistent background color
       appBar: AppBar(
         title: const Text('反詐騙諮詢'),
-        centerTitle: true,
-        backgroundColor: const Color(0xFF1976D2),
-        elevation: 0,
+        centerTitle: false, // MODIFY: Align title to the left
+        backgroundColor: Colors.grey[50], // MODIFY: AppBar background color
+        elevation: 0.5, // MODIFY: Subtle elevation
+        titleTextStyle: const TextStyle( // ADD: iOS-like title style
+          color: Colors.black,
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+        ),
+        iconTheme: IconThemeData(color: Colors.blue.shade700), // MODIFY: Icon theme for AppBar icons
         actions: [
           IconButton(
-            icon: const Icon(Icons.phone),
+            icon: const Icon(Icons.phone_outlined), // MODIFY: Use outlined icon
             onPressed: _makePhoneCall,
             tooltip: '撥打反詐專線110',
           ),
@@ -135,7 +142,7 @@ class _ChatScreenState extends State<ChatScreen> {
         children: [
           Expanded(
             child: Container(
-              color: const Color(0xFFEDEDED),
+              color: Colors.grey[100], // MODIFY: Consistent background for message list
               child: ListView.builder(
                 controller: _scrollController,
                 padding: const EdgeInsets.all(16),
@@ -151,45 +158,53 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildMessage(ChatMessage message) {
-    final isFinal = message.isFinal;
-    final textColor = message.isMe 
-      ? isFinal ? Colors.black : Colors.grey
-      : Colors.black;
-    final backgroundColor = message.isMe 
-      ? isFinal ? const Color(0xFF95EC69) : const Color(0xFFD3D3D3)
-      : Colors.white;
+    final bool isMe = message.isMe;
+    final bool isFinal = message.isFinal; // Ensure isFinal is used for styling
+
+    // Define colors based on Apple's iMessage style
+    final Color myMessageColor = Colors.blue.shade600;
+    final Color otherMessageColor = Colors.grey.shade200;
+    final Color myTextColor = Colors.white;
+    final Color otherTextColor = Colors.black87;
+    final Color interimTextColor = Colors.grey.shade700; // For non-final user messages
+
+    final textColor = isMe ? (isFinal ? myTextColor : interimTextColor) : otherTextColor;
+    final backgroundColor = isMe ? (isFinal ? myMessageColor : Colors.grey.shade300) : otherMessageColor;
+    
+    // More rounded corners for bubbles
+    final BorderRadius messageBorderRadius = BorderRadius.circular(18);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 6), // MODIFY: Adjusted padding
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
-        mainAxisAlignment: message.isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         children: [
+          // Optional: Add avatar for the other user
+          // if (!isMe) ...[
+          //   CircleAvatar(radius: 15, backgroundColor: Colors.grey[300], child: Icon(Icons.support_agent, size: 18, color: Colors.white)),
+          //   SizedBox(width: 8),
+          // ],
           ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7), // MODIFY: Slightly less width
             child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 8),
-              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.symmetric(horizontal: 4), // MODIFY: Reduced horizontal margin
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10), // MODIFY: Adjusted padding
               decoration: BoxDecoration(
                 color: backgroundColor,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(12),
-                  topRight: Radius.circular(12),
-                  bottomLeft: message.isMe ? Radius.circular(0) : Radius.circular(12),
-                  bottomRight: message.isMe ? Radius.circular(12) : Radius.circular(0),
-                ),
+                borderRadius: messageBorderRadius,
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                 children: [
                   Text(
                     message.text,
-                    style: TextStyle(fontSize: 16, color: textColor),
+                    style: TextStyle(fontSize: 16.5, color: textColor, fontWeight: FontWeight.w400), // MODIFY: Font size and weight
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 5),
                   Text(
                     _formatTime(message.time),
-                    style: const TextStyle(color: Colors.grey, fontSize: 10),
+                    style: TextStyle(color: isMe ? Colors.white70 : Colors.grey.shade600, fontSize: 11), // MODIFY: Time text style
                   ),
                 ],
               ),
@@ -206,55 +221,70 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildInputArea() {
     return Container(
-      padding: const EdgeInsets.all(16),
-      color: Colors.white,
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(Icons.add, color: Color(0xFF7D7D7D)),
-            onPressed: () {},
-          ),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _messageController,
-                      decoration: const InputDecoration(hintText: '輸入訊息...', border: InputBorder.none),
-                      maxLines: 5,
-                      minLines: 1,
-                      onSubmitted: (_) => _sendMessage(),
-                    ),
-                  ),
-                  StreamBuilder<bool>(
-                    stream: Stream.periodic(const Duration(milliseconds: 300), (_) => _speechService.isListening),
-                    builder: (context, snapshot) {
-                      final isListening = snapshot.data ?? false;
-                      return IconButton(
-                        icon: Icon(
-                          isListening ? Icons.mic_off : Icons.mic,
-                          color: isListening ? Colors.red : Colors.blue,
+      decoration: BoxDecoration(
+        color: Colors.grey[50], // MODIFY: Input area background
+        border: Border(top: BorderSide(color: Colors.grey[300]!, width: 0.5)), // ADD: Subtle top border
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // MODIFY: Adjusted padding
+      child: SafeArea( // ADD: SafeArea for bottom input area
+        child: Row(
+          children: [
+            // IconButton( // Optional: Add button, can be styled or removed
+            //   icon: Icon(Icons.add_circle_outline, color: Colors.blue.shade700, size: 28),
+            //   onPressed: () {},
+            // ),
+            // SizedBox(width: 8),
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey[200], // MODIFY: TextField background
+                  borderRadius: BorderRadius.circular(22), // MODIFY: More rounded
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16), // MODIFY: TextField padding
+                        child: TextField(
+                          controller: _messageController,
+                          decoration: const InputDecoration(
+                            hintText: '輸入訊息...',
+                            border: InputBorder.none,
+                            hintStyle: TextStyle(color: Colors.grey),
+                          ),
+                          maxLines: 5,
+                          minLines: 1,
+                          style: const TextStyle(fontSize: 16), // ADD: TextField text style
+                          onSubmitted: (_) => _sendMessage(),
                         ),
-                        onPressed: isListening ? _speechService.stopListening : _speechService.startListening,
-                        tooltip: isListening ? '停止語音輸入' : '開始語音輸入',
-                      );
-                    },
-                  ),
-                ],
+                      ),
+                    ),
+                    StreamBuilder<bool>(
+                      stream: Stream.periodic(const Duration(milliseconds: 300), (_) => _speechService.isListening),
+                      builder: (context, snapshot) {
+                        final isListening = snapshot.data ?? false;
+                        return IconButton(
+                          icon: Icon(
+                            isListening ? Icons.mic_off_outlined : Icons.mic_none_outlined, // MODIFY: Outlined icons
+                            color: isListening ? Colors.red.shade600 : Colors.blue.shade700,
+                            size: 26, // MODIFY: Icon size
+                          ),
+                          onPressed: isListening ? _speechService.stopListening : _speechService.startListening,
+                          tooltip: isListening ? '停止語音輸入' : '開始語音輸入',
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.send, color: Color(0xFF1976D2)),
-            onPressed: _sendMessage,
-          ),
-        ],
+            const SizedBox(width: 8), // ADD: Spacing before send button
+            IconButton(
+              icon: Icon(Icons.send_rounded, color: Colors.blue.shade700, size: 28), // MODIFY: Send icon and color
+              onPressed: _sendMessage,
+            ),
+          ],
+        ),
       ),
     );
   }
