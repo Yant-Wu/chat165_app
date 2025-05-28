@@ -1,6 +1,6 @@
 import 'package:speech_to_text/speech_recognition_result.dart' as stt_result_source;
-import 'package:speech_to_text/speech_to_text.dart' as stt; // For SpeechToText class and ListenMode
-import 'package:speech_to_text/speech_recognition_error.dart' as stt_error_specific; // ADDED: Specific import for SpeechRecognitionError
+import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:speech_to_text/speech_recognition_error.dart' as stt_error_specific;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -20,6 +20,7 @@ class SpeechService with ChangeNotifier {
   bool _hasPermission = false;
   String? _currentSessionId;
   String _serviceStatus = '閒置中';
+  bool _userRequestedStop = false; // 新增：追蹤是否由使用者主動停止
 
   final String _apiBaseUrl = 'http://203.145.202.91:8080';
   final String _apiEndpoint = '/chat_analysis';
@@ -35,7 +36,7 @@ class SpeechService with ChangeNotifier {
   int get requestCount => _requestCount;
 
   String _generateNewSessionId() {
-    return '${DateTime.now().millisecondsSinceEpoch}-${Random().nextInt(99999)}';
+    return '${DateTime.now().millisecondsSinceEpoch}${Random().nextInt(99999)}';
   }
 
   Future<void> initSpeech() async {
@@ -54,6 +55,9 @@ class SpeechService with ChangeNotifier {
       }
     }
 
+    _currentSessionId = _generateNewSessionId();
+    print('初始化完成，Session ID: $_currentSessionId');
+
     final available = await _speech.initialize(
       onStatus: _handleStatus,
       onError: _handleError,
@@ -70,8 +74,8 @@ class SpeechService with ChangeNotifier {
 
   void startListening() async {
     if (!_isListening && _hasPermission) {
+      _userRequestedStop = false; // 重置標誌
       _updateStatus('正在聆聽...');
-      _currentSessionId = _generateNewSessionId();
       await _speech.listen(
         onResult: _handleResult,
         localeId: 'zh-TW',
@@ -92,12 +96,18 @@ class SpeechService with ChangeNotifier {
 
   void stopListening() {
     if (_isListening) {
+      _userRequestedStop = true; // 標記為使用者主動停止
       _updateStatus('已停止聆聽');
       _speech.stop();
       _isListening = false;
       _timeoutTimer?.cancel();
-      _currentText = '聆聽已停止';
-      _textStream.add(_currentText);
+      
+      // 只有在有文本內容時才發送
+      if (_currentText.isNotEmpty && _currentText != '正在聆聽...' && _currentText != '聆聽已停止') {
+        _sendToServer(_currentText, true, _currentSessionId!);
+      } else {
+        _textStream.add('聆聽已停止');
+      }
     }
   }
 
@@ -105,8 +115,9 @@ class SpeechService with ChangeNotifier {
     _currentText = val.recognizedWords;
     _textStream.add(_currentText);
 
+    // 只有在finalResult且是使用者主動停止時才視為最終結果
     if (val.finalResult && _currentText.isNotEmpty) {
-      _sendToServer(_currentText, val.finalResult, _currentSessionId!);
+      _sendToServer(_currentText, _userRequestedStop, _currentSessionId!);
       _resetTimeoutTimer();
     }
   }
@@ -122,7 +133,7 @@ class SpeechService with ChangeNotifier {
     }
   }
 
-  void _handleError(stt_error_specific.SpeechRecognitionError error) { // MODIFIED: Use the new specific alias
+  void _handleError(stt_error_specific.SpeechRecognitionError error) {
     final errorMessage = error.errorMsg;
     final permanent = error.permanent;
     print('語音辨識錯誤：$errorMessage, permanent: $permanent');
@@ -142,7 +153,9 @@ class SpeechService with ChangeNotifier {
 
   void _restartListening() {
     if (_isListening || _speech.isAvailable) {
+      print('重啟語音辨識，保留Session ID: $_currentSessionId');
       stopListening();
+      _userRequestedStop = false; // 重啟時重置標誌
       Future.delayed(const Duration(milliseconds: 500), () {
         startListening();
       });
@@ -150,8 +163,11 @@ class SpeechService with ChangeNotifier {
   }
 
   Future<void> sendText(String text, {bool isFinal = true}) async {
-    final sessionId = _currentSessionId ?? _generateNewSessionId();
-    await _sendToServer(text, isFinal, sessionId);
+    if (_currentSessionId == null) {
+      _currentSessionId = _generateNewSessionId();
+      print('警告：sendText()被呼叫但session ID為空，已重新生成: $_currentSessionId');
+    }
+    await _sendToServer(text, isFinal, _currentSessionId!);
   }
 
   Future<void> _sendToServer(String text, bool isFinal, String sessionId) async {
