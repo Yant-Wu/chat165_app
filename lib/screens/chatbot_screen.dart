@@ -22,26 +22,22 @@ class _ChatScreenState extends State<ChatScreen> {
     _speechService = context.read<SpeechService>();
     _speechService.initSpeech();
 
-    // 初始化歡迎訊息
     _addMessage(
       text: "您好！我是反詐騙助手，請問有什麼可以幫您？",
       isMe: false,
       isFinal: true,
     );
 
-    // 監聽語音辨識結果
     _speechService.textStream.listen((text) {
       if (text.startsWith('正在聆聽')) {
         _addMessage(text: text, isMe: true, isFinal: false);
       } else if (text.startsWith('語音辨識錯誤') || text.startsWith('網路錯誤')) {
         _addMessage(text: text, isMe: false, isFinal: true);
       } else if (text.isNotEmpty && !text.startsWith('正在發送') && !text.startsWith('伺服器回覆')) {
-        // 更新最後一條消息（語音即時預覽）
         _updateLastMessage(text: text, isFinal: false);
       }
     });
 
-    // 監聽伺服器回覆
     _speechService.serverResponseStream.listen((response) {
       _addMessage(text: response, isMe: false, isFinal: true);
     });
@@ -118,21 +114,21 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100], // MODIFY: Consistent background color
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
         title: const Text('反詐騙諮詢'),
-        centerTitle: false, // MODIFY: Align title to the left
-        backgroundColor: Colors.grey[50], // MODIFY: AppBar background color
-        elevation: 0.5, // MODIFY: Subtle elevation
-        titleTextStyle: const TextStyle( // ADD: iOS-like title style
+        centerTitle: false,
+        backgroundColor: Colors.grey[50],
+        elevation: 0.5,
+        titleTextStyle: const TextStyle(
           color: Colors.black,
           fontSize: 18,
           fontWeight: FontWeight.bold,
         ),
-        iconTheme: IconThemeData(color: Colors.blue.shade700), // MODIFY: Icon theme for AppBar icons
+        iconTheme: IconThemeData(color: Colors.blue.shade700),
         actions: [
           IconButton(
-            icon: const Icon(Icons.phone_outlined), // MODIFY: Use outlined icon
+            icon: const Icon(Icons.phone_outlined),
             onPressed: _makePhoneCall,
             tooltip: '撥打反詐專線110',
           ),
@@ -142,7 +138,7 @@ class _ChatScreenState extends State<ChatScreen> {
         children: [
           Expanded(
             child: Container(
-              color: Colors.grey[100], // MODIFY: Consistent background for message list
+              color: Colors.grey[100],
               child: ListView.builder(
                 controller: _scrollController,
                 padding: const EdgeInsets.all(16),
@@ -158,38 +154,31 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildMessage(ChatMessage message) {
-    final bool isMe = message.isMe;
-    final bool isFinal = message.isFinal; // Ensure isFinal is used for styling
+    final isMe = message.isMe;
+    final isFinal = message.isFinal;
 
-    // Define colors based on Apple's iMessage style
     final Color myMessageColor = Colors.blue.shade600;
     final Color otherMessageColor = Colors.grey.shade200;
     final Color myTextColor = Colors.white;
     final Color otherTextColor = Colors.black87;
-    final Color interimTextColor = Colors.grey.shade700; // For non-final user messages
+    final Color interimTextColor = Colors.grey.shade700;
 
     final textColor = isMe ? (isFinal ? myTextColor : interimTextColor) : otherTextColor;
     final backgroundColor = isMe ? (isFinal ? myMessageColor : Colors.grey.shade300) : otherMessageColor;
-    
-    // More rounded corners for bubbles
+
     final BorderRadius messageBorderRadius = BorderRadius.circular(18);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6), // MODIFY: Adjusted padding
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         children: [
-          // Optional: Add avatar for the other user
-          // if (!isMe) ...[
-          //   CircleAvatar(radius: 15, backgroundColor: Colors.grey[300], child: Icon(Icons.support_agent, size: 18, color: Colors.white)),
-          //   SizedBox(width: 8),
-          // ],
           ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7), // MODIFY: Slightly less width
+            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
             child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 4), // MODIFY: Reduced horizontal margin
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10), // MODIFY: Adjusted padding
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: backgroundColor,
                 borderRadius: messageBorderRadius,
@@ -199,12 +188,15 @@ class _ChatScreenState extends State<ChatScreen> {
                 children: [
                   Text(
                     message.text,
-                    style: TextStyle(fontSize: 16.5, color: textColor, fontWeight: FontWeight.w400), // MODIFY: Font size and weight
+                    style: TextStyle(fontSize: 16.5, color: textColor, fontWeight: FontWeight.w400),
                   ),
                   const SizedBox(height: 5),
                   Text(
                     _formatTime(message.time),
-                    style: TextStyle(color: isMe ? Colors.white70 : Colors.grey.shade600, fontSize: 11), // MODIFY: Time text style
+                    style: TextStyle(
+                      color: isMe ? Colors.white70 : Colors.grey.shade600,
+                      fontSize: 11,
+                    ),
                   ),
                 ],
               ),
@@ -222,29 +214,24 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildInputArea() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.grey[50], // MODIFY: Input area background
-        border: Border(top: BorderSide(color: Colors.grey[300]!, width: 0.5)), // ADD: Subtle top border
+        color: Colors.grey[50],
+        border: Border(top: BorderSide(color: Colors.grey[300]!, width: 0.5)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // MODIFY: Adjusted padding
-      child: SafeArea( // ADD: SafeArea for bottom input area
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: SafeArea(
         child: Row(
           children: [
-            // IconButton( // Optional: Add button, can be styled or removed
-            //   icon: Icon(Icons.add_circle_outline, color: Colors.blue.shade700, size: 28),
-            //   onPressed: () {},
-            // ),
-            // SizedBox(width: 8),
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.grey[200], // MODIFY: TextField background
-                  borderRadius: BorderRadius.circular(22), // MODIFY: More rounded
+                  color: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(22),
                 ),
                 child: Row(
                   children: [
                     Expanded(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16), // MODIFY: TextField padding
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: TextField(
                           controller: _messageController,
                           decoration: const InputDecoration(
@@ -254,7 +241,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           ),
                           maxLines: 5,
                           minLines: 1,
-                          style: const TextStyle(fontSize: 16), // ADD: TextField text style
+                          style: const TextStyle(fontSize: 16),
                           onSubmitted: (_) => _sendMessage(),
                         ),
                       ),
@@ -265,9 +252,9 @@ class _ChatScreenState extends State<ChatScreen> {
                         final isListening = snapshot.data ?? false;
                         return IconButton(
                           icon: Icon(
-                            isListening ? Icons.mic_off_outlined : Icons.mic_none_outlined, // MODIFY: Outlined icons
+                            isListening ? Icons.mic_off_outlined : Icons.mic_none_outlined,
                             color: isListening ? Colors.red.shade600 : Colors.blue.shade700,
-                            size: 26, // MODIFY: Icon size
+                            size: 26,
                           ),
                           onPressed: isListening ? _speechService.stopListening : _speechService.startListening,
                           tooltip: isListening ? '停止語音輸入' : '開始語音輸入',
@@ -278,10 +265,11 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
               ),
             ),
-            const SizedBox(width: 8), // ADD: Spacing before send button
+            const SizedBox(width: 8),
             IconButton(
-              icon: Icon(Icons.send_rounded, color: Colors.blue.shade700, size: 28), // MODIFY: Send icon and color
+              icon: Icon(Icons.send_rounded, color: Colors.blue.shade700, size: 26),
               onPressed: _sendMessage,
+              tooltip: '送出訊息',
             ),
           ],
         ),
