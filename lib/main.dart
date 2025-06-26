@@ -5,6 +5,7 @@ import 'screens/chatbot_screen.dart';
 import 'screens/scam_exposure_screen.dart';
 import 'screens/profile_screen.dart';
 import 'service/speech_service.dart';
+import 'screens/chatscreen.dart';
 
 void main() {
   runApp(
@@ -64,7 +65,8 @@ class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   final List<Widget> _pages = [
     const HomeScreen(),
-    const ChatScreen(),
+    const RecordDialog(),
+    //const ChatScreen(),
     const ScamExposureScreen(),
     const ProfileScreen(),
   ];
