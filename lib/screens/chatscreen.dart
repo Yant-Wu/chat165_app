@@ -101,10 +101,12 @@ class _RecordDialogState extends State<RecordDialog> {
         final transcript = json['transcript'] ?? '無內容';
         final isScam = json['is_scam'] ?? false;
         final confidence = json['confidence'] ?? 0.0;
+        final scamMessage = json['scamMessage'] ?? '無進一步分析結果';
 
         final resultText = '辨識內容：「$transcript」\n'
             '是否詐騙：${isScam ? '是 🚨' : '否 ✅'}\n'
-            '信心：${(confidence * 100).toStringAsFixed(1)}%';
+            '信心：${(confidence * 100).toStringAsFixed(1)}%\n'
+            '詐騙分析：$scamMessage\n';
 
         setState(() {
           _status = '分析完成';
