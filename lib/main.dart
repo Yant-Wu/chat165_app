@@ -92,7 +92,7 @@ class _MainScreenState extends State<MainScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.chat_bubble_outline_rounded), // Use outlined icons
             activeIcon: Icon(Icons.chat_bubble_rounded),
-            label: '聊天',
+            label: '語音辨識詐騙',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.shield_outlined), // Changed to a more relevant "security/exposure" icon
