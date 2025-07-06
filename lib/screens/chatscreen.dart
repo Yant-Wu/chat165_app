@@ -24,6 +24,7 @@ class _RecordDialogState extends State<RecordDialog> {
   bool _isRecording = false;
   String _status = '點擊下方開始錄音';
   String _responseInfo = '回傳資訊將顯示在此處';
+  String _detailedResponseInfo = '';
 
   @override
   void initState() {
@@ -103,26 +104,54 @@ class _RecordDialogState extends State<RecordDialog> {
         final confidence = json['confidence'] ?? 0.0;
         final scamMessage = json['scamMessage'] ?? '無進一步分析結果';
 
-        final resultText = '辨識內容：「$transcript」\n'
-            '是否詐騙：${isScam ? '是 🚨' : '否 ✅'}\n'
-            '信心：${(confidence * 100).toStringAsFixed(1)}%\n'
-            '詐騙分析：$scamMessage\n';
+        // 簡化的主頁面資訊
+        final simpleResult = '是否詐騙：${isScam ? '是 🚨' : '否 ✅'}\n'
+            '信心：${(confidence * 100).toStringAsFixed(1)}%';
+
+        // 詳細的分析結果
+        final detailedResult = '辨識內容：「$transcript」\n\n'
+            '詐騙分析：$scamMessage';
 
         setState(() {
           _status = '分析完成';
-          _responseInfo = resultText;
+          _responseInfo = simpleResult;
+          _detailedResponseInfo = detailedResult;
         });
+        _showScamAnalysisDialog(_detailedResponseInfo);
       } catch (e) {
         setState(() {
           _responseInfo = '回傳格式錯誤：$body';
+          _detailedResponseInfo = '回傳格式錯誤：$body';
         });
       }
     } catch (e) {
       setState(() {
         _status = '上傳失敗：$e';
         _responseInfo = '上傳失敗：$e';
+        _detailedResponseInfo = '上傳失敗：$e';
       });
     }
+  }
+
+  void _showScamAnalysisDialog(String analysisContent) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('詐騙分析結果'),
+          content: Text(
+            analysisContent,
+            style: const TextStyle(fontSize: 16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('關閉'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -164,28 +193,18 @@ class _RecordDialogState extends State<RecordDialog> {
               style: const TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 20),
+            // 更多內容按鈕
+            ElevatedButton(
+              onPressed: () {
+                if (_detailedResponseInfo.isNotEmpty) {
+                  _showScamAnalysisDialog(_detailedResponseInfo);
+                }
+              },
+              child: const Text('更多內容'),
+            ),
           ],
         ),
       ),
     );
   }
 }
-
-
-// ✅ 使用方式（在 ChatScreen 中）：
-// 將電話按鈕替換為：
-// IconButton(
-//   icon: const Icon(Icons.phone_outlined),
-//   onPressed: () {
-//     showDialog(
-//       context: context,
-//       builder: (context) => const RecordDialog(),
-//     );
-//   },
-//   tooltip: '語音錄音辨識',
-// ),
-//       builder: (context) => const RecordDialog(),
-//     );
-//   },
-//   tooltip: '語音錄音辨識',
-// ),
