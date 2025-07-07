@@ -109,9 +109,21 @@ class _RecordDialogState extends State<RecordDialog> {
         });
       }
     } catch (e) {
-      setState(() {
-        _status = '上傳失敗：$e';
-      });
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('上傳失敗'),
+            content: const Text('請檢查網路以及VPN連線'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('確定'),
+              ),
+            ],
+          );
+        },
+      );
     }
   }
 
@@ -124,10 +136,47 @@ class _RecordDialogState extends State<RecordDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                _status,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              const SizedBox(height: 8), // 調整狀態欄與圓形百分比指示器的間距
+              CircularPercentIndicator(
+                radius: 80,
+                lineWidth: 12,
+                percent: (_confidence.clamp(0, 100)) / 100,
+                animation: true,
+                circularStrokeCap: CircularStrokeCap.round,
+                backgroundColor: Colors.grey.shade300,
+                progressColor: _isScam ? Colors.redAccent : const Color.fromARGB(255, 37, 231, 19),
+                center: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '${_confidence.toStringAsFixed(0)}%',
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _isScam ? 'SCAM RISK' : 'TOTAL TFX',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: _isScam ? Colors.redAccent : Colors.grey,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _status, // 顯示狀態欄內容
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
               ),
+
               const Divider(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -145,45 +194,13 @@ class _RecordDialogState extends State<RecordDialog> {
                 ],
               ),
               const Divider(height: 24),
-              CircularPercentIndicator(
-                radius: 80,
-                lineWidth: 12,
-                percent: (_confidence.clamp(0, 100)) / 100,
-                animation: true,
-                circularStrokeCap: CircularStrokeCap.round,
-                backgroundColor: Colors.grey.shade300,
-                progressColor: _isScam ? Colors.redAccent : Colors.deepPurpleAccent,
-                center: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      '${_confidence.toStringAsFixed(0)}%',
-                      style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),    
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _isScam ? 'SCAM RISK' : 'TOTAL TFX',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: _isScam ? Colors.redAccent : Colors.grey,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const Divider(height: 24),
               TextButton(
                 onPressed: () => setState(() => _showDetails = !_showDetails),
                 child: Text(_showDetails ? '隱藏詳細資料' : 'V 更多詳細資料'),
               ),
               if (_showDetails) ...[
                 const Divider(height: 24),
+                /*
                 const Align(
                   alignment: Alignment.centerLeft,
                   child: Text('辨識結果：', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
@@ -209,7 +226,7 @@ class _RecordDialogState extends State<RecordDialog> {
                     ),
                   ),
                 ),
-
+                */
                 const Align(
                   alignment: Alignment.centerLeft,
                   child: Text('分析結果：', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
