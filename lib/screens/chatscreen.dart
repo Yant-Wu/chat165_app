@@ -1,9 +1,10 @@
-// 📦 需要的套件：record, http, path_provider
+// 📦 需要的套件：record, http, path_provider, percent_indicator
 // pubspec.yaml 加入：
 // dependencies:
 //   record: ^5.0.0
 //   http: ^0.13.0
 //   path_provider: ^2.0.0
+//   percent_indicator: ^4.2.3
 
 import 'dart:io';
 import 'dart:convert';
@@ -11,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
+import 'package:percent_indicator/circular_percent_indicator.dart';
 
 class RecordDialog extends StatefulWidget {
   const RecordDialog({super.key});
@@ -22,9 +24,12 @@ class RecordDialog extends StatefulWidget {
 class _RecordDialogState extends State<RecordDialog> {
   final AudioRecorder _recorder = AudioRecorder();
   bool _isRecording = false;
-  String _status = '點擊下方開始錄音';
-  String _responseInfo = '回傳資訊將顯示在此處';
-  String _detailedResponseInfo = '';
+  String _status = '點擊開始辨識';
+  double _confidence = 0.0;
+  bool _isScam = false;
+  String _transcript = '';
+  String _scamMessage = '';
+  bool _showDetails = false;
 
   @override
   void initState() {
@@ -40,13 +45,6 @@ class _RecordDialogState extends State<RecordDialog> {
 
   Future<void> _startRecording() async {
     try {
-      if (await _recorder.isRecording()) {
-        setState(() {
-          _status = '錄音已在進行中...';
-        });
-        return;
-      }
-
       if (await _recorder.hasPermission()) {
         final dir = await getTemporaryDirectory();
         final path = '${dir.path}/audio.m4a';
@@ -55,11 +53,11 @@ class _RecordDialogState extends State<RecordDialog> {
 
         setState(() {
           _isRecording = true;
-          _status = '錄音中...';
+          _status = '錄音中';
         });
       } else {
         setState(() {
-          _status = '無法取得錄音權限，請至設定開啟權限。';
+          _status = '無法取得錄音權限';
         });
       }
     } catch (e) {
@@ -74,13 +72,12 @@ class _RecordDialogState extends State<RecordDialog> {
       final path = await _recorder.stop();
       setState(() {
         _isRecording = false;
-        _status = '正在分析中...';
+        _status = '分析中';
       });
 
       if (path == null || !File(path).existsSync()) {
         setState(() {
           _status = '未取得有效音訊檔案';
-          _responseInfo = '未取得有效音訊檔案';
         });
         return;
       }
@@ -99,110 +96,148 @@ class _RecordDialogState extends State<RecordDialog> {
 
       try {
         final json = jsonDecode(body);
-        final transcript = json['transcript'] ?? '無內容';
-        final isScam = json['is_scam'] ?? false;
-        final confidence = json['confidence'] ?? 0.0;
-        final scamMessage = json['scamMessage'] ?? '無進一步分析結果';
-
-        // 簡化的主頁面資訊
-        final simpleResult = '是否詐騙：${isScam ? '是 🚨' : '否 ✅'}\n'
-            '信心：${(confidence * 100).toStringAsFixed(1)}%';
-
-        // 詳細的分析結果
-        final detailedResult = '辨識內容：「$transcript」\n\n'
-            '詐騙分析：$scamMessage';
-
         setState(() {
+          _transcript = json['transcript'] ?? '';
+          _isScam = json['is_scam'] ?? false;
+          _confidence = (json['confidence'] ?? 0.0) * 100;
+          _scamMessage = json['scamMessage'] ?? '';
           _status = '分析完成';
-          _responseInfo = simpleResult;
-          _detailedResponseInfo = detailedResult;
         });
-        _showScamAnalysisDialog(_detailedResponseInfo);
       } catch (e) {
         setState(() {
-          _responseInfo = '回傳格式錯誤：$body';
-          _detailedResponseInfo = '回傳格式錯誤：$body';
+          _status = '回傳格式錯誤：$body';
         });
       }
     } catch (e) {
       setState(() {
         _status = '上傳失敗：$e';
-        _responseInfo = '上傳失敗：$e';
-        _detailedResponseInfo = '上傳失敗：$e';
       });
     }
-  }
-
-  void _showScamAnalysisDialog(String analysisContent) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('詐騙分析結果'),
-          content: Text(
-            analysisContent,
-            style: const TextStyle(fontSize: 16),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('關閉'),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: Padding(
-        padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          top: 16,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              _status,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: _isRecording ? null : _startRecording,
-                  icon: const Icon(Icons.mic),
-                  label: const Text('開始錄音'),
+        padding: const EdgeInsets.all(16),
+        child: SingleChildScrollView( // 包裹 Column，啟用滾動功能
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _status,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const Divider(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _isRecording ? null : _startRecording,
+                    icon: const Icon(Icons.mic),
+                    label: const Text('開始辨識'),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: _isRecording ? _stopAndUpload : null,
+                    icon: const Icon(Icons.stop),
+                    label: const Text('結束辨識'),
+                  ),
+                ],
+              ),
+              const Divider(height: 24),
+              CircularPercentIndicator(
+                radius: 80,
+                lineWidth: 12,
+                percent: (_confidence.clamp(0, 100)) / 100,
+                animation: true,
+                circularStrokeCap: CircularStrokeCap.round,
+                backgroundColor: Colors.grey.shade300,
+                progressColor: _isScam ? Colors.redAccent : Colors.deepPurpleAccent,
+                center: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '${_confidence.toStringAsFixed(0)}%',
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),    
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _isScam ? 'SCAM RISK' : 'TOTAL TFX',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: _isScam ? Colors.redAccent : Colors.grey,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ],
                 ),
-                ElevatedButton.icon(
-                  onPressed: _isRecording ? _stopAndUpload : null,
-                  icon: const Icon(Icons.upload),
-                  label: const Text('停止並上傳'),
+              ),
+
+              const Divider(height: 24),
+              TextButton(
+                onPressed: () => setState(() => _showDetails = !_showDetails),
+                child: Text(_showDetails ? '隱藏詳細資料' : 'V 更多詳細資料'),
+              ),
+              if (_showDetails) ...[
+                const Divider(height: 24),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('辨識結果：', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                ),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minHeight: 4 * 20.0, // 預設高度為 4 行文字大小
+                  ),
+                  child: Container(
+                    width: double.infinity, // 左右對齊，填滿父容器
+                    margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8), // 增加左右間隔
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      _transcript.isEmpty ? '尚無內容' : _transcript,
+                      textAlign: TextAlign.left, // 文字靠左對齊
+                      maxLines: null, // 允許文字行數不限
+                      overflow: TextOverflow.visible, // 文字超出時顯示完整內容
+                      style: const TextStyle(fontSize: 16), // 設定文字大小
+                    ),
+                  ),
+                ),
+
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('分析結果：', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                ),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minHeight: 4 * 20.0, // 預設高度為 4 行文字大小
+                  ),
+                  child: Container(
+                    width: double.infinity, // 左右對齊，填滿父容器
+                    margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8), // 增加左右間隔
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      _scamMessage.isEmpty ? '尚無內容' : _scamMessage,
+                      textAlign: TextAlign.left, // 文字靠左對齊
+                      maxLines: null, // 允許文字行數不限
+                      overflow: TextOverflow.visible, // 文字超出時顯示完整內容
+                      style: const TextStyle(fontSize: 16), // 設定文字大小
+                    ),
+                  ),
                 ),
               ],
-            ),
-            const SizedBox(height: 20),
-            Text(
-              _responseInfo,
-              style: const TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 20),
-            // 更多內容按鈕
-            ElevatedButton(
-              onPressed: () {
-                if (_detailedResponseInfo.isNotEmpty) {
-                  _showScamAnalysisDialog(_detailedResponseInfo);
-                }
-              },
-              child: const Text('更多內容'),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

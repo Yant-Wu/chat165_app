@@ -14,6 +14,7 @@ dependencies:
   
   speech_to_text: ^7.0.0
   voice_message_package: ^2.2.1  # 語音訊息UI元件
+  percent_indicator: ^4.2.5
   double_back_to_close: ^2.0.0  # 用於iOS雙擊檢測
   sensors_plus: ^6.1.1
   permission_handler: ^11.0.1
