@@ -2,6 +2,18 @@
 
 一個結合即時通話分析與 AI 辨識的防詐騙應用程式，提供 Android 和 iOS 雙平台支援。
 
+![GitHub last commit](https://img.shields.io/github/last-commit/Yant-Wu/chat165_app)
+![last monday](https://img.shields.io/badge/last%20commit-last%20monday-blue)
+![dart](https://img.shields.io/badge/dart-50.3%25-blue)
+![languages](https://img.shields.io/badge/languages-9-blue)
+
+*Built with the tools and technologies:*
+
+![Markdown](https://img.shields.io/badge/Markdown-000000?logo=markdown&logoColor=white)
+![Dart](https://img.shields.io/badge/Dart-0175C2?logo=dart&logoColor=white)
+![Flutter](https://img.shields.io/badge/Flutter-02569B?logo=flutter&logoColor=white)
+![YAML](https://img.shields.io/badge/YAML-CF142B?logo=yaml&logoColor=white)
+
 ## 功能特色
 
 - 📞 即時通話詐騙分析與攔截
@@ -69,31 +81,26 @@
 - chore: 構建過程或輔助工具變更
 
 ### 常見命令備忘錄
-- 查看與遠端不一樣的項目
 
-    git status
+#### Coding 循環
+建立分支 →開發功能（add → commit） →拉取 develop → merge/rebase →發送 PR →Code Review →合併到 develop/main →刪除本地與遠端分支
 
-- 創建新分支
+#### 查看本地分支
+git branch
 
-    git checkout -b feature/your-feature
+#### 開啟新分支
+git checkout -b branch_name
 
-- 提交變更
-
-    git add .
-
-    git commit -m "feat(module): add new feature"
-
-- 推送分支
-    
-    git push origin feature/your-feature
-
-- 拉取最新變更
-    
-    git pull origin develop
-
-- 合併分支
-
-    git checkout develop
-
-    git merge --no-ff feature/your-feature
-
+#### 合併分支
+1. 完成 feature/login 開發並 commit。
+2. 確保 feature 分支與 develop 同步
+3. 切回 develop
+    * git checkout develop
+4. 合併
+    * git merge feature/login
+5. 如有衝突需要解決一下
+6. 測試無誤推送
+    * git push origin develop
+7. 刪除已合併的feature分支
+    * git branch -d feature/login
+    * git push origin --delete feature/login
