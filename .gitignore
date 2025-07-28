@@ -33,6 +33,50 @@ migrate_working_dir/
 .pub/
 /build/
 
+# Build cache files
+**/cache.dill*
+**/*.dill
+**/*.track.dill
+
+# Test files (optional - uncomment if you don't want to track tests)
+# test/
+# **/test/
+
+# Lock files (auto-generated, should not be committed)
+pubspec.lock
+ios/Podfile.lock
+
+# Auto-generated plugin registration files
+**/GeneratedPluginRegistrant.swift
+**/generated_plugin_registrant.cc
+**/generated_plugins.cmake
+**/GeneratedPluginRegistrant.java
+**/GeneratedPluginRegistrant.m
+**/generated_plugin_registrant.dart
+
+# Flutter build artifacts
+**/Flutter/App.framework
+**/Flutter/Flutter.framework
+**/Flutter/Flutter.podspec
+**/Flutter/Generated.xcconfig
+**/Flutter/ephemeral/
+**/Pods/
+
+# iOS build artifacts
+**/ios/Flutter/flutter_assets/
+**/ios/Runner.xcworkspace/xcuserdata/
+**/ios/*.xcworkspace/xcuserdata/
+
+# Android build artifacts  
+**/android/.gradle/
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+
 # Symbolication related
 app.*.symbols
 
