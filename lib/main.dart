@@ -4,6 +4,7 @@ import 'screens/home_screen.dart';
 import 'screens/scam_exposure_screen.dart';
 import 'screens/profile_screen.dart';
 import 'service/speech_service.dart';
+import 'service/app_location_service.dart';
 import 'screens/chatscreen.dart';
 
 void main() {
@@ -69,6 +70,20 @@ class _MainScreenState extends State<MainScreen> {
     const ScamExposureScreen(),
     const ProfileScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    print('=== 🚀 App 主畫面初始化 ===');
+    // 自動初始化位置服務
+    _initializeLocation();
+  }
+
+  Future<void> _initializeLocation() async {
+    print('🌍 開始初始化位置服務...');
+    await AppLocationService.initializeLocationOnAppStart();
+    print('✅ 位置服務初始化完成');
+  }
 
   @override
   Widget build(BuildContext context) {
