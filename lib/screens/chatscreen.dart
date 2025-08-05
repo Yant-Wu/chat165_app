@@ -17,7 +17,6 @@ import '../service/global_state.dart';
 
 class RecordDialog extends StatefulWidget {
   const RecordDialog({super.key});
-
   @override
   State<RecordDialog> createState() => _RecordDialogState();
 }
@@ -135,7 +134,7 @@ class _RecordDialogState extends State<RecordDialog> {
       final request = http.MultipartRequest('POST', uri)
         ..fields['session_id'] = _globalState.sessionId
         ..fields['is_final'] = 'true'
-        ..fields['county'] = _globalState.currentCounty ?? 'unknown'
+        ..fields['county'] = _globalState.currentCounty ?? 'hello'
         ..files.add(await http.MultipartFile.fromPath('audio_file', file.path));
 
       print('🚀 發送請求到後端...');
