@@ -1,0 +1,16 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Gradle sync/build (Java 21)",
+			"type": "shell",
+			"command": "./gradlew -p android :app:assembleDebug --no-daemon --warning-mode all",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$gradle-build"
+			],
+			"group": "build"
+		}
+	]
+}

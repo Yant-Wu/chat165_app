@@ -1,16 +1,10 @@
-import 'package:flutter/material.dart';
 import 'dart:async'; // For Timer
-import 'dart:math'; // For Random
 
-// ADD: DashboardItem class definition
-class DashboardItem {
-  final int rank;
-  final String name;
-  final int numericValue;
-  String get displayValue => '$numericValue 分';
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
-  DashboardItem({required this.rank, required this.name, required this.numericValue});
-}
+import '../model/scam_type.dart';
+import '../service/scam_types_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,60 +14,65 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // State variables for dashboard
-  List<DashboardItem> _dashboardItems = [];
-  bool _isLoadingDashboard = true;
+  final ScamTypesService _scamTypesService = ScamTypesService();
+  final DateFormat _dateFormat = DateFormat('yyyy-MM-dd HH:mm');
+
+  List<ScamType> _scamTypes = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+  DateTime? _lastUpdatedAt;
   Timer? _dashboardUpdateTimer;
 
   @override
   void initState() {
     super.initState();
-    // REMOVE: _initSpeech(); // This was for the removed voice risk detection
-    // ADD: Initialize and start timer for dashboard data
-    _fetchDashboardData(); // Initial fetch
+    _fetchScamTypes(); // Initial fetch
     _dashboardUpdateTimer = Timer.periodic(Duration(minutes: 10), (timer) {
-      _fetchDashboardData();
+      _fetchScamTypes(showLoading: false);
     });
   }
 
-  // Method to fetch/simulate dashboard data
-  Future<void> _fetchDashboardData() async {
+  Future<void> _fetchScamTypes({bool showLoading = true}) async {
     if (!mounted) return;
-    setState(() {
-      _isLoadingDashboard = true;
-    });
+    if (showLoading) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    } else {
+      setState(() {
+        _errorMessage = null;
+      });
+    }
 
-    // Simulate network delay
-    await Future.delayed(Duration(milliseconds: 300 + Random().nextInt(400)));
-
-    final random = Random();
-    List<DashboardItem> newItems = List.generate(5, (index) {
-      return DashboardItem(
-        rank: 0, // Will be set after sorting
-        name: '詐騙手法 ${String.fromCharCode(65 + random.nextInt(10))}${index + 1}',
-        numericValue: random.nextInt(2000) + 500,
-      );
-    });
-
-    newItems.sort((a, b) => b.numericValue.compareTo(a.numericValue));
-
-    _dashboardItems = List.generate(newItems.length, (index) {
-      return DashboardItem(
-        rank: index + 1,
-        name: newItems[index].name,
-        numericValue: newItems[index].numericValue,
-      );
-    });
-    
-    if (!mounted) return;
-    setState(() {
-      _isLoadingDashboard = false;
-    });
+    try {
+      final response = await _scamTypesService.fetchScamTypes();
+      if (!mounted) return;
+      setState(() {
+        _scamTypes = response.scamTypes;
+        _lastUpdatedAt = response.updatedAt;
+        _isLoading = false;
+        _errorMessage = null;
+      });
+    } on ScamTypesException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = e.message;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = '發生未知錯誤，請稍後再試';
+      });
+    }
   }
 
   @override
   void dispose() {
     _dashboardUpdateTimer?.cancel(); // Cancel the timer
+    _scamTypesService.dispose();
     super.dispose();
   }
 
@@ -118,68 +117,115 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      '165dashboard',
-                      style: TextStyle( // MODIFY: iOS-like section title
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            '詐騙手法排行榜',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.refresh),
+                          tooltip: '重新整理',
+                          onPressed: _isLoading ? null : () => _fetchScamTypes(),
+                        ),
+                      ],
                     ),
+                    if (_lastUpdatedAt != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text(
+                          '更新時間：${_dateFormat.format(_lastUpdatedAt!)}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ),
                     const SizedBox(height: 12),
-                    // MODIFY: Dashboard UI using ListView.separated
-                    if (_isLoadingDashboard)
-                      const Center(child: Padding(
-                        padding: EdgeInsets.all(16.0),
-                        child: CircularProgressIndicator(),
-                      ))
-                    else if (_dashboardItems.isEmpty)
-                      const Center(child: Padding(
-                        padding: EdgeInsets.all(16.0),
-                        child: Text('目前沒有排行榜資料'),
-                      ))
+                    if (_isLoading)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: CircularProgressIndicator(),
+                        ),
+                      )
+                    else if (_errorMessage != null)
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            children: [
+                              Text(
+                                _errorMessage!,
+                                style: const TextStyle(color: Colors.redAccent),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 8),
+                              OutlinedButton.icon(
+                                onPressed: () => _fetchScamTypes(),
+                                icon: const Icon(Icons.refresh),
+                                label: const Text('重新嘗試'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    else if (_scamTypes.isEmpty)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Text('目前沒有詐騙手法資料'),
+                        ),
+                      )
                     else
                       ListView.separated(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _dashboardItems.length,
+                        itemCount: _scamTypes.length,
                         itemBuilder: (context, index) {
-                          final item = _dashboardItems[index];
+                          final item = _scamTypes[index];
                           return ListTile(
                             leading: CircleAvatar(
-                              backgroundColor: Colors.grey[200], // MODIFY: Subtle background for rank
+                              backgroundColor: Colors.grey[200],
                               child: Text(
-                                '#${item.rank}',
+                                '#${index + 1}',
                                 style: TextStyle(
-                                  color: Colors.grey[700], // MODIFY: Muted text color for rank
+                                  color: Colors.grey[700],
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
                                 ),
                               ),
                             ),
                             title: Text(
-                              item.name,
-                              style: const TextStyle( // MODIFY: iOS-like title style
+                              item.type,
+                              style: const TextStyle(
                                 fontWeight: FontWeight.w500,
                                 fontSize: 17,
-                                color: Colors.black87
-                              )
-                            ),
-                            trailing: Text(
-                              item.displayValue,
-                              style: TextStyle( // MODIFY: iOS-like detail text style
-                                color: Colors.grey[600],
-                                fontSize: 16
+                                color: Colors.black87,
                               ),
                             ),
-                            contentPadding: const EdgeInsets.symmetric(vertical: 10.0), // MODIFY: Adjust vertical padding
+                            trailing: Text(
+                              '${item.count} 件',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 16,
+                              ),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(vertical: 10.0),
                           );
                         },
-                        separatorBuilder: (context, index) => Divider( // ADD: Separator for list items
+                        separatorBuilder: (context, index) => Divider(
                           height: 1,
-                          thickness: 0.5, // Thinner divider
-                          color: Colors.grey[300], // Lighter separator color
-                          indent: 16, // Align with ListTile content (approx)
+                          thickness: 0.5,
+                          color: Colors.grey[300],
+                          indent: 16,
                           endIndent: 0,
                         ),
                       ),
