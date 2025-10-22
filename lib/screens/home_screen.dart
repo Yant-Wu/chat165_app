@@ -2,6 +2,7 @@ import 'dart:async'; // For Timer
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../model/scam_type.dart';
 import '../service/scam_types_service.dart';
@@ -76,6 +77,35 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    final Uri launchUri = Uri(
+      scheme: 'tel',
+      path: phoneNumber,
+    );
+    if (!await launchUrl(launchUri)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('無法撥打電話至 $phoneNumber'),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _launchURL(String url) async {
+    final Uri launchUri = Uri.parse(url);
+    if (!await launchUrl(launchUri, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('無法開啟網站 $url'),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -104,9 +134,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _buildFunctionButton('我要舉報', Icons.report, Colors.red),
-                    _buildFunctionButton('來電預警', Icons.phone_in_talk, Colors.orange), // Changed icon for variety
-                    _buildFunctionButton('身份核實', Icons.verified_user, Colors.green), // Reverted icon
+                    GestureDetector(
+                      onTap: () => _makePhoneCall('165'),
+                      child: _buildFunctionButton('我要舉報', Icons.report, Colors.red),
+                    ),
+                    //_buildFunctionButton('來電預警', Icons.phone_in_talk, Colors.orange), // Changed icon for variety
+                    GestureDetector(
+                      onTap: () => _launchURL('https://165.npa.gov.tw/#/'),
+                      child: _buildFunctionButton('身份核實', Icons.verified_user, Colors.green),
+                    ), // Reverted icon
                   ],
                 ),
               ),
