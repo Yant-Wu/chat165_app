@@ -9,9 +9,11 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
+import 'package:http/io_client.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import '../service/global_state.dart';
 
@@ -54,6 +56,26 @@ class _RecordDialogState extends State<RecordDialog> {
     }
   }
 
+  Future<http.Client> _createCustomHttpClient() async {
+    // 建立一個 SecurityContext，不使用系統預設的信任根憑證
+    final securityContext = SecurityContext(withTrustedRoots: false);
+    try {
+      // 從 assets 載入您的憑證檔案
+      final certificate = await rootBundle.load('assets/165voice.asc.lab.pem');
+      // 將憑證設定為受信任的憑證
+      securityContext.setTrustedCertificatesBytes(certificate.buffer.asUint8List());
+      print('✅ 憑證載入成功');
+    } catch (e) {
+      print('❌ 憑證載入失敗: $e');
+      // 如果憑證載入失敗，可以選擇拋出錯誤或回退到不安全的連線
+    }
+    // 建立一個使用自訂 SecurityContext 的 HttpClient
+    final httpClient = HttpClient(context: securityContext);
+    // 您可以選擇性地處理壞憑證的回呼，但在此情境下，我們信任自訂憑證
+    // httpClient.badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+    return IOClient(httpClient);
+  }
+
   Future<void> _startRecording() async {
     try {
       print('=== 🎤 開始錄音流程 ===');
@@ -90,6 +112,7 @@ class _RecordDialogState extends State<RecordDialog> {
   }
 
   Future<void> _stopAndUpload() async {
+    http.Client? client;
     try {
       print('=== 🎤 停止錄音並開始上傳 ===');
       final path = await _recorder.stop();
@@ -112,7 +135,7 @@ class _RecordDialogState extends State<RecordDialog> {
       final fileSize = await file.length();
       print('📊 音訊檔案大小: ${fileSize} bytes');
       
-      final uri = Uri.parse('http://203.145.202.91:8080/audio_analysis');
+      final uri = Uri.parse('https://203.145.202.91:8080/audio_analysis');
       print('🔗 API 端點: $uri');
       
       // 建立 multipart request，使用全域 session-id 和位置資料
@@ -138,7 +161,9 @@ class _RecordDialogState extends State<RecordDialog> {
         ..files.add(await http.MultipartFile.fromPath('audio_file', file.path));
 
       print('🚀 發送請求到後端...');
-      final response = await request.send();
+      // 建立自訂的 HTTP client 並發送請求
+      client = await _createCustomHttpClient();
+      final response = await client.send(request);
       print('📡 收到回應 - 狀態碼: ${response.statusCode}');
       
       final body = await response.stream.bytesToString();
@@ -188,6 +213,10 @@ class _RecordDialogState extends State<RecordDialog> {
           );
         },
       );
+    } finally {
+      // 確保無論成功或失敗都關閉 client
+      client?.close();
+      print('🔌 HTTP 客戶端已關閉');
     }
   }
 

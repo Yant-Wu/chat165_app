@@ -37,4 +37,4 @@ dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/images/
+    - assets/165voice.asc.lab.pem
