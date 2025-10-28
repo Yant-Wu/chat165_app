@@ -31,7 +31,7 @@ class Chat165 extends StatelessWidget {
         scaffoldBackgroundColor: Colors.grey[100], // MODIFY: Consistent light grey background
         appBarTheme: AppBarTheme( // MODIFY: Updated AppBar theme to match Apple style
           elevation: 0.5,
-          centerTitle: false,
+          centerTitle: false, 
           backgroundColor: Colors.grey[50], // Light background for AppBar
           titleTextStyle: const TextStyle(
             fontSize: 18,
@@ -68,7 +68,7 @@ class _MainScreenState extends State<MainScreen> {
     const RecordDialog(),
     //const ChatScreen(),
     const ScamExposureScreen(),
-    const ProfileScreen(),
+    //const ProfileScreen(),
   ];
 
   @override
@@ -113,11 +113,12 @@ class _MainScreenState extends State<MainScreen> {
             activeIcon: Icon(Icons.shield),
             label: '騙局曝光',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline), // Use outlined icons
-            activeIcon: Icon(Icons.person),
-            label: '我的',
-          ),
+
+          //BottomNavigationBarItem(
+          //  icon: Icon(Icons.person_outline), // Use outlined icons
+          //  activeIcon: Icon(Icons.person),
+          //  label: '我的',
+          //),
         ],
         onTap: (index) => setState(() => _currentIndex = index),
       ),
